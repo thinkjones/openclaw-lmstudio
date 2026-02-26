@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Config/docs repo for running OpenClaw in a Docker Sandbox with LM Studio as the backend. **Not a buildable software project** — no package.json, no Dockerfile, no test framework.
+Config/docs repo for running OpenClaw in a Docker Sandbox with LM Studio as the backend. Uses a Dockerfile for image builds and mise for task orchestration.
 
 ## Architecture
 
@@ -14,9 +14,11 @@ OpenClaw (in sandbox) → Bridge (localhost:54321) → LM Studio (host.docker.in
 
 | File | Role |
 |------|------|
+| `Dockerfile` | Image definition: Ubuntu 24.04, Node 22, Bun, OpenClaw |
+| `mise.toml` | Task runner: build, push, sandbox management |
 | `sandbox/model-runner-bridge.ts` | Bun HTTP proxy forwarding requests to LM Studio on the host |
 | `sandbox/start-openclaw.sh` | Entry point: configures model, starts bridge, launches OpenClaw |
-| `.github/workflows/build-push.yml` | CI: tags and pushes pre-built images to GHCR (does NOT `docker build`) |
+| `.github/workflows/build-push.yml` | CI: tags and pushes images to GHCR |
 | `docs/openclaw-lmstudio-docker-sandbox-prompt.md` | Original prompt used to scaffold this repo |
 
 ## Running
@@ -29,19 +31,17 @@ docker sandbox exec -it openclaw-dev /bin/bash /sandbox/start-openclaw.sh list  
 docker sandbox exec -it openclaw-dev /bin/bash /sandbox/start-openclaw.sh "model"  # specific model
 ```
 
-## Building the Image (manual process)
+## Building the Image
 
 ```bash
-docker sandbox create --name env-openclaw shell .
-# Inside sandbox: install Node 22, Bun, OpenClaw
-docker sandbox save env-openclaw openclaw-lmstudio:latest
-docker tag openclaw-lmstudio:latest ghcr.io/thinkjones/openclaw-lmstudio:latest
-docker push ghcr.io/thinkjones/openclaw-lmstudio:latest
+mise run build          # docker build
+mise run push           # push to GHCR
+mise run release        # build + push
 ```
 
 ## CI/CD
 
-Push to `main` or tag `v*` triggers GitHub Actions to tag the image (`latest`, semver, git SHA) and push to GHCR via `GITHUB_TOKEN`.
+Push to `main` or tag `v*` triggers GitHub Actions to build the image from the Dockerfile, tag it (`latest`, semver, git SHA), and push to GHCR via `GITHUB_TOKEN`.
 
 ## Prerequisites
 

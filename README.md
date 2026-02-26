@@ -51,34 +51,30 @@ docker sandbox exec -it openclaw-dev /bin/bash /sandbox/start-openclaw.sh
 
 ## For Maintainers
 
+Requires [mise](https://mise.jdx.dev/) and Docker Desktop.
+
 ### Building the Image
 
-This image is **not** built via a Dockerfile. It is created manually using Docker Sandbox save:
+```bash
+mise run build           # Build the Docker image
+mise run push            # Push to GHCR
+mise run release         # Build + push
+```
+
+Or without mise:
 
 ```bash
-# 1. Create a fresh sandbox from a shell base
-docker sandbox create --name env-openclaw shell .
-
-# 2. Inside the sandbox, install dependencies
-#    - Node.js 22
-#    - Bun
-#    - OpenClaw
-
-# 3. Save the sandbox as an image
-docker sandbox save env-openclaw openclaw-lmstudio:latest
-
-# 4. Tag and push to GHCR
-docker tag openclaw-lmstudio:latest ghcr.io/thinkjones/openclaw-lmstudio:latest
+docker build -t ghcr.io/thinkjones/openclaw-lmstudio:latest .
 docker push ghcr.io/thinkjones/openclaw-lmstudio:latest
 ```
 
-### Syncing Sandbox Scripts
-
-Copy updated scripts into a running sandbox:
+### Sandbox Management
 
 ```bash
-docker sandbox cp sandbox/model-runner-bridge.ts openclaw-dev:/sandbox/model-runner-bridge.ts
-docker sandbox cp sandbox/start-openclaw.sh openclaw-dev:/sandbox/start-openclaw.sh
+mise run sandbox-create  # Create a sandbox from the image
+mise run sandbox-run     # Run OpenClaw in the sandbox
+mise run sandbox-run:list # List available models
+mise run sandbox-destroy # Remove the sandbox
 ```
 
 ### Creating a Release
@@ -90,4 +86,4 @@ docker sandbox cp sandbox/start-openclaw.sh openclaw-dev:/sandbox/start-openclaw
 
 ### CI/CD
 
-The GitHub Actions workflow (`.github/workflows/build-push.yml`) does **not** build images. It pulls the existing `latest` image from GHCR, re-tags it with metadata (semver, SHA), and pushes the new tags.
+The GitHub Actions workflow (`.github/workflows/build-push.yml`) builds the image from the Dockerfile and pushes to GHCR with auto-generated tags (`latest`, semver, SHA).

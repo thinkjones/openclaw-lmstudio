@@ -1,0 +1,32 @@
+[vars]
+IMAGE = "ghcr.io/thinkjones/openclaw-lmstudio"
+SANDBOX = "openclaw-lmstudio"
+
+[tasks.build]
+description = "Build the Docker image"
+run = "docker build -t {{vars.IMAGE}}:latest ."
+
+[tasks.push]
+description = "Push the image to GHCR"
+run = "docker push {{vars.IMAGE}}:latest"
+
+[tasks.release]
+description = "Build and push the image"
+depends = ["build"]
+run = "docker push {{vars.IMAGE}}:latest"
+
+[tasks.sandbox-create]
+description = "Create a Docker sandbox from the image"
+run = "docker sandbox create --name {{vars.SANDBOX}} {{vars.IMAGE}}:latest"
+
+[tasks.sandbox-run]
+description = "Run OpenClaw in the sandbox"
+run = "docker sandbox exec -it {{vars.SANDBOX}} /bin/bash /sandbox/start-openclaw.sh"
+
+[tasks."sandbox-run:list"]
+description = "List available LM Studio models"
+run = "docker sandbox exec -it {{vars.SANDBOX}} /bin/bash /sandbox/start-openclaw.sh list"
+
+[tasks.sandbox-destroy]
+description = "Remove the sandbox"
+run = "docker sandbox rm {{vars.SANDBOX}}"

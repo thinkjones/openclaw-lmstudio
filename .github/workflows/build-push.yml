@@ -1,4 +1,4 @@
-name: Tag and Push Image
+name: Build and Push Image
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   packages: write
 
 jobs:
-  push:
+  build-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,10 +33,10 @@ jobs:
             type=semver,pattern={{version}}
             type=sha
 
-      - name: Pull, re-tag, and push
-        run: |
-          docker pull ghcr.io/thinkjones/openclaw-lmstudio:latest || true
-          for tag in $(echo "${{ steps.meta.outputs.tags }}"); do
-            docker tag ghcr.io/thinkjones/openclaw-lmstudio:latest "$tag"
-            docker push "$tag"
-          done
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
