@@ -17,7 +17,7 @@ RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
 # OpenClaw
-RUN npm install -g @anthropics/claude-code
+RUN npm install -g openclaw@latest
 
 # Sandbox scripts
 COPY sandbox/model-runner-bridge.ts /sandbox/model-runner-bridge.ts
