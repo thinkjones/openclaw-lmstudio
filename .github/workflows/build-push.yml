@@ -35,11 +35,15 @@ jobs:
             type=sha,prefix=sha-
 
       - name: Pull existing latest image
-        run: docker pull ghcr.io/thinkjones/openclaw-lmstudio:latest || echo "Warning: latest image not found"
+        run: |
+          docker pull ghcr.io/thinkjones/openclaw-lmstudio:latest || echo "Warning: latest image not found"
 
       - name: Tag and push generated tags
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          for tag in ${{ steps.meta.outputs.tags }}; do
-            docker tag ghcr.io/thinkjones/openclaw-lmstudio:latest $tag || true
-            docker push $tag || true
+          echo "$TAGS" | while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag ghcr.io/thinkjones/openclaw-lmstudio:latest "$tag" || true
+            docker push "$tag" || true
           done
