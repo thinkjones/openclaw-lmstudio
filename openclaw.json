@@ -1,0 +1,36 @@
+{
+  "models": {
+    "providers": {
+      "lmstudio": {
+        "baseUrl": "http://host.docker.internal:1234/v1",
+        "apiKey": "lm-studio",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "google/gemma-3-4b",
+            "name": "google/gemma-3-4b",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 32768,
+            "maxTokens": 4096
+          }
+        ]
+      }
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "lan"
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "lmstudio/google/gemma-3-4b"
+      },
+      "sandbox": {
+        "mode": "non-main"
+      }
+    }
+  }
+}

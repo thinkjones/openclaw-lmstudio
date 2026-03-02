@@ -1,0 +1,26 @@
+# Environment
+.env
+
+# Workspace data
+workspace/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+*.log
+
+# Node
+node_modules/
+
+# OpenClaw local config and runtime data
+.openclaw/
+.openclaw-data/
+
+# Everything Claude Code plugin (development dependency)
+everything-claude-code/
