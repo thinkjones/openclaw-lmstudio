@@ -25,6 +25,74 @@ LOCAL_BIN="/home/node/.local/bin"
 mkdir -p "${LOCAL_BIN}"
 export PATH="${LOCAL_BIN}:${PATH}"
 
+# --- Optional runtime dependencies ---
+# Installed once, persisted on the .local volume. Each check is idempotent.
+# Failures are non-fatal (warn and continue).
+
+install_go() {
+  if [ "${INSTALL_GO:-false}" != "true" ]; then return; fi
+  local GO_DIR="/home/node/.local/go"
+  if [ -x "${GO_DIR}/bin/go" ]; then
+    echo "[deps] Go already installed — skipping"
+  else
+    echo "[deps] Installing Go runtime..."
+    local GO_VERSION="1.22.5"
+    local ARCH
+    ARCH="$(uname -m)"
+    case "${ARCH}" in
+      x86_64)  ARCH="amd64" ;;
+      aarch64) ARCH="arm64" ;;
+    esac
+    local TARBALL="go${GO_VERSION}.linux-${ARCH}.tar.gz"
+    if curl -fsSL "https://go.dev/dl/${TARBALL}" -o "/tmp/${TARBALL}"; then
+      mkdir -p "${GO_DIR}"
+      tar -C "/home/node/.local" -xzf "/tmp/${TARBALL}"
+      rm -f "/tmp/${TARBALL}"
+      echo "[deps] Go ${GO_VERSION} installed to ${GO_DIR}"
+    else
+      echo "[deps] WARNING: Failed to download Go — skill 'blogwatcher' may not work"
+    fi
+  fi
+  export PATH="${GO_DIR}/bin:${PATH}"
+  export GOPATH="/home/node/.local/gopath"
+  mkdir -p "${GOPATH}"
+}
+
+install_uv() {
+  if [ "${INSTALL_UV:-false}" != "true" ]; then return; fi
+  if command -v uv &> /dev/null; then
+    echo "[deps] uv already installed — skipping"
+  else
+    echo "[deps] Installing uv..."
+    if curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR="/home/node/.local/bin" sh; then
+      echo "[deps] uv installed"
+    else
+      echo "[deps] WARNING: Failed to install uv — skill 'mcporter' may not work"
+    fi
+  fi
+}
+
+install_npm_globals() {
+  if [ "${INSTALL_NPM_GLOBALS:-false}" != "true" ]; then return; fi
+  local NPM_PREFIX="/home/node/.local"
+  for pkg in clawhub gifgrep; do
+    if [ -x "${NPM_PREFIX}/bin/${pkg}" ]; then
+      echo "[deps] ${pkg} already installed — skipping"
+    else
+      echo "[deps] Installing ${pkg}..."
+      if npm install -g --prefix "${NPM_PREFIX}" "${pkg}" 2>/dev/null; then
+        echo "[deps] ${pkg} installed"
+      else
+        echo "[deps] WARNING: Failed to install ${pkg}"
+      fi
+    fi
+  done
+}
+
+install_go
+install_uv
+install_npm_globals
+
 # --- Persist .bashrc customizations ---
 # OpenClaw may modify .bashrc (e.g. adding PATH entries for installed tools).
 # The container's /home/node/.bashrc is ephemeral, so we:

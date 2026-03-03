@@ -1,5 +1,29 @@
 FROM ghcr.io/openclaw/openclaw:latest
 
+# --- Optional build-time dependencies ---
+# Set to "true" via docker-compose build args to include system packages.
+# When false (default), no apt-get runs — zero image size impact.
+ARG INSTALL_CHROMIUM=false
+ARG INSTALL_FFMPEG=false
+
+USER root
+RUN set -eux; \
+    PACKAGES=""; \
+    if [ "${INSTALL_CHROMIUM}" = "true" ]; then \
+      PACKAGES="${PACKAGES} chromium fonts-liberation libatk-bridge2.0-0 \
+        libatk1.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 libnspr4 libnss3 \
+        libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 xdg-utils"; \
+    fi; \
+    if [ "${INSTALL_FFMPEG}" = "true" ]; then \
+      PACKAGES="${PACKAGES} ffmpeg"; \
+    fi; \
+    if [ -n "${PACKAGES}" ]; then \
+      apt-get update && \
+      apt-get install -y --no-install-recommends ${PACKAGES} && \
+      rm -rf /var/lib/apt/lists/*; \
+    fi
+USER node
+
 # Store the config as a seed template (not in .openclaw — volume will override it)
 # setup.sh writes the real config to .openclaw-files/.openclaw/openclaw.json
 COPY --chown=node:node .openclaw-files/.openclaw/openclaw.json /opt/openclaw-seed/openclaw.json

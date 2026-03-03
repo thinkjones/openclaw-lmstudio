@@ -148,6 +148,45 @@ Claude is billed per token. To reduce costs:
 - Limit `maxTokens` in the config
 - OpenClaw enables prompt caching automatically, which reduces repeated prompt costs
 
+## macOS-Only Skills
+
+The following OpenClaw skills require macOS-specific frameworks and **cannot run inside the Docker container**:
+
+| Skill | Dependency | Why It Can't Work |
+|-------|-----------|-------------------|
+| camsnap | AVFoundation | macOS camera framework |
+| nano-pdf | macOS PDF APIs | Native PDF rendering |
+| sag | macOS frameworks | System-level access |
+| xurl | macOS frameworks | System-level access |
+
+These skills will only work when running OpenClaw natively on macOS.
+
+## Optional Dependencies Not Working
+
+If a skill fails with "command not found" for tools like `go`, `uv`, `ffmpeg`, or `chromium`:
+
+1. Check that the corresponding flag is set in `.env`:
+   ```bash
+   grep INSTALL_ .env
+   ```
+
+2. **Build-time deps** (`INSTALL_CHROMIUM`, `INSTALL_FFMPEG`) require a rebuild:
+   ```bash
+   docker compose down
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+3. **Runtime deps** (`INSTALL_GO`, `INSTALL_UV`, `INSTALL_NPM_GLOBALS`) are installed on container start. Check the logs for `[deps]` messages:
+   ```bash
+   docker compose logs openclaw | grep "\[deps\]"
+   ```
+
+4. If a runtime install failed (e.g., network issue), restart the container to retry:
+   ```bash
+   docker compose restart
+   ```
+
 ## Getting Help
 
 - [OpenClaw Docs](https://docs.openclaw.ai)

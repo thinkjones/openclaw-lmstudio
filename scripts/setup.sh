@@ -176,6 +176,41 @@ esac
 
 echo ""
 
+# --- Report optional dependencies ---
+echo "Optional dependencies:"
+BUILD_DEPS=""
+RUNTIME_DEPS=""
+
+if [ "${INSTALL_CHROMIUM:-false}" = "true" ]; then
+  BUILD_DEPS="${BUILD_DEPS} chromium"
+fi
+if [ "${INSTALL_FFMPEG:-false}" = "true" ]; then
+  BUILD_DEPS="${BUILD_DEPS} ffmpeg"
+fi
+if [ "${INSTALL_GO:-false}" = "true" ]; then
+  RUNTIME_DEPS="${RUNTIME_DEPS} go"
+fi
+if [ "${INSTALL_UV:-false}" = "true" ]; then
+  RUNTIME_DEPS="${RUNTIME_DEPS} uv"
+fi
+if [ "${INSTALL_NPM_GLOBALS:-false}" = "true" ]; then
+  RUNTIME_DEPS="${RUNTIME_DEPS} clawhub gifgrep"
+fi
+
+if [ -n "${BUILD_DEPS}" ]; then
+  echo "  Build-time (baked into image):${BUILD_DEPS}"
+else
+  echo "  Build-time: (none)"
+fi
+if [ -n "${RUNTIME_DEPS}" ]; then
+  echo "  Runtime (installed on first start):${RUNTIME_DEPS}"
+else
+  echo "  Runtime: (none)"
+fi
+echo ""
+echo "  To enable more, edit .env and see the 'Optional Dependencies' section."
+echo ""
+
 # --- Build Docker image ---
 echo "Building Docker image: openclaw-lmstudio..."
 docker compose build
