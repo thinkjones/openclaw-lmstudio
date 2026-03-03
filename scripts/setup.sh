@@ -187,6 +187,9 @@ fi
 if [ "${INSTALL_FFMPEG:-false}" = "true" ]; then
   BUILD_DEPS="${BUILD_DEPS} ffmpeg"
 fi
+if [ "${INSTALL_HOMEBREW:-false}" = "true" ]; then
+  BUILD_DEPS="${BUILD_DEPS} homebrew(gogcli,gh)"
+fi
 if [ "${INSTALL_GO:-false}" = "true" ]; then
   RUNTIME_DEPS="${RUNTIME_DEPS} go"
 fi

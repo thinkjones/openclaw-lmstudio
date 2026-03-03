@@ -156,7 +156,7 @@ The following OpenClaw skills require macOS-specific frameworks and **cannot run
 |-------|-----------|-------------------|
 | camsnap | AVFoundation | macOS camera framework |
 | nano-pdf | macOS PDF APIs | Native PDF rendering |
-| sag | macOS frameworks | System-level access |
+| sag | ebitengine/oto | Requires platform audio (fails on Linux ARM64) |
 | xurl | macOS frameworks | System-level access |
 
 These skills will only work when running OpenClaw natively on macOS.
@@ -170,7 +170,7 @@ If a skill fails with "command not found" for tools like `go`, `uv`, `ffmpeg`, o
    grep INSTALL_ .env
    ```
 
-2. **Build-time deps** (`INSTALL_CHROMIUM`, `INSTALL_FFMPEG`) require a rebuild:
+2. **Build-time deps** (`INSTALL_CHROMIUM`, `INSTALL_FFMPEG`, `INSTALL_HOMEBREW`) require a rebuild:
    ```bash
    docker compose down
    docker compose build --no-cache

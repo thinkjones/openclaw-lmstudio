@@ -5,6 +5,7 @@ FROM ghcr.io/openclaw/openclaw:latest
 # When false (default), no apt-get runs — zero image size impact.
 ARG INSTALL_CHROMIUM=false
 ARG INSTALL_FFMPEG=false
+ARG INSTALL_HOMEBREW=false
 
 USER root
 RUN set -eux; \
@@ -17,12 +18,28 @@ RUN set -eux; \
     if [ "${INSTALL_FFMPEG}" = "true" ]; then \
       PACKAGES="${PACKAGES} ffmpeg"; \
     fi; \
+    if [ "${INSTALL_HOMEBREW}" = "true" ]; then \
+      PACKAGES="${PACKAGES} build-essential procps curl file git"; \
+    fi; \
     if [ -n "${PACKAGES}" ]; then \
       apt-get update && \
       apt-get install -y --no-install-recommends ${PACKAGES} && \
       rm -rf /var/lib/apt/lists/*; \
     fi
+# --- Homebrew + OpenClaw tap ---
+# Homebrew must be installed as root (creates /home/linuxbrew/.linuxbrew),
+# then ownership is transferred to node so `brew install` works unprivileged.
+RUN if [ "${INSTALL_HOMEBREW}" = "true" ]; then \
+      mkdir -p /home/linuxbrew/.linuxbrew && \
+      chown -R node:node /home/linuxbrew; \
+    fi
 USER node
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
+RUN if [ "${INSTALL_HOMEBREW}" = "true" ]; then \
+      NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && \
+      brew tap steipete/tap && \
+      brew install steipete/tap/gogcli gh; \
+    fi
 
 # Store the config as a seed template (not in .openclaw — volume will override it)
 # setup.sh writes the real config to .openclaw-files/.openclaw/openclaw.json
