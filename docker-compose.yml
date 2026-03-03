@@ -20,8 +20,12 @@ services:
     environment:
       - NODE_ENV=production
       - LANG=C.UTF-8
+      - PROVIDER=${PROVIDER:-lmstudio}
+      # LM Studio provider
       - LMSTUDIO_BASE_URL=http://host.docker.internal:${LMSTUDIO_PORT:-1234}
       - LMSTUDIO_PORT=${LMSTUDIO_PORT:-1234}
+      # Claude provider
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
 
     # Run as node user (uid 1000)
     user: "1000:1000"

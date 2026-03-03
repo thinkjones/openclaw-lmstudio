@@ -3,7 +3,7 @@ set -euo pipefail
 
 # =============================================================================
 # setup.sh — One-command setup for openclaw-lmstudio
-# Builds the image, creates workspace directory, and starts the container.
+# Supports LM Studio (local) and Claude (Anthropic API) providers.
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,10 +32,10 @@ fi
 if [ ! -f .env ]; then
   echo "Creating .env from .env.example..."
   cp .env.example .env
-  echo "  Please edit .env with your LM Studio model details."
-  echo "  Then re-run this script."
+  echo "  Please edit .env to configure your provider."
   echo ""
-  echo "  Required: Set LMSTUDIO_MODEL_ID to match your loaded model."
+  echo "  Set PROVIDER=lmstudio (default) or PROVIDER=claude"
+  echo "  Then fill in the required variables for your chosen provider."
   echo ""
   exit 0
 fi
@@ -44,6 +44,8 @@ fi
 set -a
 source .env
 set +a
+
+PROVIDER="${PROVIDER:-lmstudio}"
 
 # --- Create workspace directory if needed ---
 WORKSPACE="${WORKSPACE_PATH:-./workspace}"
@@ -58,15 +60,18 @@ if [ ! -d ".openclaw-data" ]; then
   mkdir -p ".openclaw-data"
 fi
 
-# --- Generate openclaw.json from template ---
-echo "Generating openclaw.json..."
-MODEL_ID="${LMSTUDIO_MODEL_ID:-qwen3-8b}"
-MODEL_NAME="${LMSTUDIO_MODEL_NAME:-Local Model}"
-CONTEXT_WINDOW="${LMSTUDIO_CONTEXT_WINDOW:-32768}"
-MAX_TOKENS="${LMSTUDIO_MAX_TOKENS:-4096}"
-PORT="${LMSTUDIO_PORT:-1234}"
+# --- Generate openclaw.json based on provider ---
+echo "Generating openclaw.json (provider: ${PROVIDER})..."
 
-cat > openclaw.json << ENDJSON
+case "${PROVIDER}" in
+  lmstudio)
+    MODEL_ID="${LMSTUDIO_MODEL_ID:-qwen3-8b}"
+    MODEL_NAME="${LMSTUDIO_MODEL_NAME:-Local Model}"
+    CONTEXT_WINDOW="${LMSTUDIO_CONTEXT_WINDOW:-32768}"
+    MAX_TOKENS="${LMSTUDIO_MAX_TOKENS:-4096}"
+    PORT="${LMSTUDIO_PORT:-1234}"
+
+    cat > openclaw.json << ENDJSON
 {
   "models": {
     "providers": {
@@ -105,8 +110,60 @@ cat > openclaw.json << ENDJSON
 }
 ENDJSON
 
-echo "  Model: ${MODEL_NAME} (${MODEL_ID})"
-echo "  LM Studio: http://host.docker.internal:${PORT}/v1"
+    echo "  Provider:  LM Studio (local)"
+    echo "  Model:     ${MODEL_NAME} (${MODEL_ID})"
+    echo "  Endpoint:  http://host.docker.internal:${PORT}/v1"
+    ;;
+
+  claude)
+    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+    CLAUDE_MODEL="${CLAUDE_MODEL:-anthropic/claude-sonnet-4-5}"
+
+    if [ -z "${ANTHROPIC_API_KEY}" ]; then
+      echo ""
+      echo "ERROR: ANTHROPIC_API_KEY is required when PROVIDER=claude"
+      echo ""
+      echo "  1. Get your API key from https://console.anthropic.com/settings/keys"
+      echo "  2. Set ANTHROPIC_API_KEY in your .env file"
+      echo "  3. Re-run this script"
+      echo ""
+      exit 1
+    fi
+
+    cat > openclaw.json << ENDJSON
+{
+  "env": {
+    "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}"
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "lan"
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "${CLAUDE_MODEL}"
+      },
+      "sandbox": {
+        "mode": "non-main"
+      }
+    }
+  }
+}
+ENDJSON
+
+    echo "  Provider:  Claude (Anthropic API)"
+    echo "  Model:     ${CLAUDE_MODEL}"
+    echo "  API Key:   ${ANTHROPIC_API_KEY:0:12}..."
+    ;;
+
+  *)
+    echo "ERROR: Unknown PROVIDER '${PROVIDER}'"
+    echo "  Valid values: lmstudio, claude"
+    exit 1
+    ;;
+esac
+
 echo ""
 
 # --- Build Docker image ---
@@ -124,14 +181,15 @@ echo "========================================="
 echo "  Setup complete!"
 echo "========================================="
 echo ""
-echo "  OpenClaw is running at: http://127.0.0.1:18789"
-echo "  Workspace mounted at:   /workspace (-> ${WORKSPACE})"
+echo "  Provider:            ${PROVIDER}"
+echo "  OpenClaw UI:         http://127.0.0.1:18789"
+echo "  Workspace mounted:   /workspace (-> ${WORKSPACE})"
 echo ""
 echo "  Commands:"
 echo "    docker compose logs -f     # Watch logs"
 echo "    docker compose down        # Stop"
 echo "    docker compose restart     # Restart"
 echo ""
-echo "  To open the OpenClaw CLI:"
-echo "    docker compose exec openclaw openclaw"
+echo "  To open the OpenClaw TUI:"
+echo "    docker compose exec -it openclaw node /app/dist/index.js tui"
 echo ""
