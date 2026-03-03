@@ -1,23 +1,6 @@
 {
-  "models": {
-    "providers": {
-      "lmstudio": {
-        "baseUrl": "http://host.docker.internal:1234/v1",
-        "apiKey": "lm-studio",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "google/gemma-3-4b",
-            "name": "google/gemma-3-4b",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 32768,
-            "maxTokens": 4096
-          }
-        ]
-      }
-    }
+  "env": {
+    "ANTHROPIC_API_KEY": "XXX"
   },
   "gateway": {
     "mode": "local",
@@ -26,7 +9,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "lmstudio/google/gemma-3-4b"
+        "primary": "anthropic/claude-sonnet-4-6"
       },
       "sandbox": {
         "mode": "non-main"

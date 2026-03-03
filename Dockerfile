@@ -1,7 +1,8 @@
 FROM ghcr.io/openclaw/openclaw:latest
 
-# Store the LM Studio config as a seed template (not in .openclaw — volume will override it)
-COPY --chown=node:node openclaw.json /opt/openclaw-seed/openclaw.json
+# Store the config as a seed template (not in .openclaw — volume will override it)
+# setup.sh writes the real config to .openclaw-files/.openclaw/openclaw.json
+COPY --chown=node:node .openclaw-files/.openclaw/openclaw.json /opt/openclaw-seed/openclaw.json
 
 # Copy entrypoint script (--chmod sets executable permission without a separate RUN)
 COPY --chmod=755 scripts/start.sh /usr/local/bin/start.sh

@@ -92,13 +92,12 @@ The model's context window in LM Studio is too small for OpenClaw's system promp
 
 ## Changed Model in .env But Container Uses Old Model
 
-The config is baked into the Docker image and seeded into `.openclaw-data/` on first run. You need to clear the seeded config:
+The config is baked into the Docker image and seeded into `.openclaw-files/.openclaw/` on first run. You need to clear the seeded config:
 
 ```bash
 docker compose down
+rm -rf .openclaw-files/.openclaw/*
 ./scripts/setup.sh
-rm -rf .openclaw-data/*
-docker compose build && docker compose up -d
 ```
 
 ## Web UI Not Accessible
@@ -114,7 +113,7 @@ If `http://127.0.0.1:18789` returns an empty reply or won't load:
 ```bash
 # Full rebuild (after .env or config changes)
 docker compose down
-rm -rf .openclaw-data/*
+rm -rf .openclaw-files/.openclaw/*
 ./scripts/setup.sh
 
 # Rebuild image only (after Dockerfile changes)
@@ -123,8 +122,35 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
+## Claude: "ANTHROPIC_API_KEY is required"
+
+You set `PROVIDER=claude` but didn't provide an API key.
+
+1. Get your key from [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+2. Set `ANTHROPIC_API_KEY=sk-ant-api03-...` in `.env`
+3. Re-run `./scripts/setup.sh`
+
+## Claude: "Invalid API key" or 401 Errors
+
+- Verify your key starts with `sk-ant-api03-`
+- Check it hasn't expired or been revoked in the Anthropic console
+- Ensure no extra whitespace around the key in `.env`
+- Run `openclaw doctor --fix` inside the container:
+  ```bash
+  docker compose exec openclaw node /app/dist/index.js doctor --fix
+  ```
+
+## Claude: High API Costs
+
+Claude is billed per token. To reduce costs:
+
+- Use `anthropic/claude-sonnet-4-5` (cheaper) instead of `anthropic/claude-opus-4-5`
+- Limit `maxTokens` in the config
+- OpenClaw enables prompt caching automatically, which reduces repeated prompt costs
+
 ## Getting Help
 
 - [OpenClaw Docs](https://docs.openclaw.ai)
 - [LM Studio Docs](https://lmstudio.ai/docs)
+- [Anthropic API Docs](https://docs.anthropic.com)
 - [Docker Desktop Docs](https://docs.docker.com/desktop/)
