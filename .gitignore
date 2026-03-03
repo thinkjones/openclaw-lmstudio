@@ -3,6 +3,7 @@
 
 # Workspace data
 workspace/
+archive/
 
 # OS files
 .DS_Store
@@ -20,7 +21,7 @@ node_modules/
 
 # OpenClaw local config and runtime data
 .openclaw/
-.openclaw-data/
+.openclaw-files/
 
 # Everything Claude Code plugin (development dependency)
 everything-claude-code/

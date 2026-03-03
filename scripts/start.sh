@@ -20,6 +20,50 @@ if [ ! -f "${OPENCLAW_DIR}/openclaw.json" ]; then
   cp "${SEED_DIR}/openclaw.json" "${OPENCLAW_DIR}/openclaw.json"
 fi
 
+# --- Ensure user-local bin directory exists and is on PATH ---
+LOCAL_BIN="/home/node/.local/bin"
+mkdir -p "${LOCAL_BIN}"
+export PATH="${LOCAL_BIN}:${PATH}"
+
+# --- Persist .bashrc customizations ---
+# OpenClaw may modify .bashrc (e.g. adding PATH entries for installed tools).
+# The container's /home/node/.bashrc is ephemeral, so we:
+#   1. Save any .bashrc changes to the persistent volume on shutdown (via trap)
+#   2. Restore them on startup from the persistent volume
+PERSISTENT_BASHRC="${OPENCLAW_DIR}/.bashrc.local"
+CONTAINER_BASHRC="/home/node/.bashrc"
+
+# Restore persisted bashrc customizations
+if [ -f "${PERSISTENT_BASHRC}" ]; then
+  # Append persistent customizations to container's bashrc
+  if ! grep -q "# openclaw-persistent-bashrc" "${CONTAINER_BASHRC}" 2>/dev/null; then
+    {
+      echo ""
+      echo "# openclaw-persistent-bashrc"
+      cat "${PERSISTENT_BASHRC}"
+    } >> "${CONTAINER_BASHRC}"
+  fi
+fi
+
+# Ensure .local/bin is always on PATH in .bashrc for interactive shells
+if ! grep -q '\.local/bin' "${CONTAINER_BASHRC}" 2>/dev/null; then
+  echo 'export PATH="/home/node/.local/bin:${PATH}"' >> "${CONTAINER_BASHRC}"
+fi
+
+# On shutdown, save any new .bashrc lines to the persistent volume
+save_bashrc() {
+  if [ -f "${CONTAINER_BASHRC}" ]; then
+    # Extract lines added after our marker (or save the whole file if no marker)
+    if grep -q "# openclaw-persistent-bashrc" "${CONTAINER_BASHRC}"; then
+      sed -n '/# openclaw-persistent-bashrc/,$ p' "${CONTAINER_BASHRC}" \
+        | tail -n +2 > "${PERSISTENT_BASHRC}"
+    else
+      cp "${CONTAINER_BASHRC}" "${PERSISTENT_BASHRC}"
+    fi
+  fi
+}
+trap save_bashrc EXIT
+
 echo "========================================="
 echo "  openclaw-lmstudio (${PROVIDER})"
 echo "========================================="
@@ -89,6 +133,40 @@ case "${PROVIDER}" in
     echo "API Key:   ${ANTHROPIC_API_KEY:0:12}..."
     echo ""
 
+    # --- Seed auth-profiles.json for the main agent ---
+    # OpenClaw stores provider credentials in auth-profiles.json per agent.
+    # We create this file so the gateway can authenticate with Anthropic.
+    AGENT_DIR="${OPENCLAW_DIR}/agents/main/agent"
+    AUTH_FILE="${AGENT_DIR}/auth-profiles.json"
+    mkdir -p "${AGENT_DIR}"
+
+    # Detect key type: sk-ant-oat01- is a setup token, sk-ant-api03- is an API key
+    if [[ "${ANTHROPIC_API_KEY}" == sk-ant-oat01-* ]]; then
+      echo "Configuring Anthropic auth (setup token)..."
+      cat > "${AUTH_FILE}" << AUTHEOF
+{
+  "profiles": {
+    "anthropic:default": {
+      "type": "token",
+      "token": "${ANTHROPIC_API_KEY}"
+    }
+  }
+}
+AUTHEOF
+    else
+      echo "Configuring Anthropic auth (API key)..."
+      cat > "${AUTH_FILE}" << AUTHEOF
+{
+  "profiles": {
+    "anthropic:default": {
+      "type": "api_key",
+      "key": "${ANTHROPIC_API_KEY}"
+    }
+  }
+}
+AUTHEOF
+    fi
+
     # --- Quick connectivity check to Anthropic API ---
     echo "Checking Anthropic API connectivity..."
     if curl -fsS --max-time 10 https://api.anthropic.com/v1/messages \
@@ -99,8 +177,7 @@ case "${PROVIDER}" in
          > /dev/null 2>&1; then
       echo "Anthropic API is reachable."
     else
-      echo "WARNING: Could not verify Anthropic API connectivity."
-      echo "  This may be normal if the container has limited network access."
+      echo "WARNING: Could not fully verify Anthropic API (this may be normal for setup tokens)."
       echo "  OpenClaw will attempt to connect when you send a message."
     fi
     echo ""

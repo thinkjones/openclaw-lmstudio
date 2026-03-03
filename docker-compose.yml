@@ -35,8 +35,11 @@ services:
       # Workspace: your project directory mounted read-write
       - ${WORKSPACE_PATH:-./workspace}:/workspace:rw
       # OpenClaw config persistence (settings, memory, skills, logs)
-      # Seeded from /opt/openclaw-seed on first run by start.sh
-      - ./.openclaw-data:/home/node/.openclaw:rw
+      - ./.openclaw-files/.openclaw:/home/node/.openclaw:rw
+      # User-local persistence (binaries installed by openclaw: gh, gog, etc.)
+      - ./.openclaw-files/.local:/home/node/.local:rw
+      # Runtime config persistence (gh, git, mise, etc.)
+      - ./.openclaw-files/.config:/home/node/.config:rw
 
     working_dir: /workspace
 

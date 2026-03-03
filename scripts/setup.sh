@@ -54,10 +54,20 @@ if [ ! -d "${WORKSPACE}" ]; then
   mkdir -p "${WORKSPACE}"
 fi
 
-# --- Create OpenClaw data directory (bind-mounted into container) ---
-if [ ! -d ".openclaw-data" ]; then
-  echo "Creating .openclaw-data directory..."
-  mkdir -p ".openclaw-data"
+# --- Create .openclaw-files directory structure (bind-mounted into container) ---
+if [ ! -d ".openclaw-files/.openclaw" ]; then
+  echo "Creating .openclaw-files/.openclaw directory..."
+  mkdir -p ".openclaw-files/.openclaw"
+fi
+
+if [ ! -d ".openclaw-files/.local/bin" ]; then
+  echo "Creating .openclaw-files/.local/bin directory..."
+  mkdir -p ".openclaw-files/.local/bin"
+fi
+
+if [ ! -d ".openclaw-files/.config" ]; then
+  echo "Creating .openclaw-files/.config directory..."
+  mkdir -p ".openclaw-files/.config"
 fi
 
 # --- Generate openclaw.json based on provider ---
@@ -71,7 +81,7 @@ case "${PROVIDER}" in
     MAX_TOKENS="${LMSTUDIO_MAX_TOKENS:-4096}"
     PORT="${LMSTUDIO_PORT:-1234}"
 
-    cat > openclaw.json << ENDJSON
+    cat > .openclaw-files/.openclaw/openclaw.json << ENDJSON
 {
   "models": {
     "providers": {
@@ -130,7 +140,7 @@ ENDJSON
       exit 1
     fi
 
-    cat > openclaw.json << ENDJSON
+    cat > .openclaw-files/.openclaw/openclaw.json << ENDJSON
 {
   "env": {
     "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}"
@@ -192,4 +202,8 @@ echo "    docker compose restart     # Restart"
 echo ""
 echo "  To open the OpenClaw TUI:"
 echo "    docker compose exec -it openclaw node /app/dist/index.js tui"
+echo ""
+echo "  TIP: Have an existing ~/.openclaw installation?"
+echo "    Run ./scripts/copy-config.sh to copy your auth profiles and settings"
+echo "    into .openclaw-files/.openclaw/ for use by the container."
 echo ""
