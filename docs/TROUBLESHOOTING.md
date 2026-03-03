@@ -92,13 +92,12 @@ The model's context window in LM Studio is too small for OpenClaw's system promp
 
 ## Changed Model in .env But Container Uses Old Model
 
-The config is baked into the Docker image and seeded into `.openclaw-data/` on first run. You need to clear the seeded config:
+The config is baked into the Docker image and seeded into `.openclaw-files/.openclaw/` on first run. You need to clear the seeded config:
 
 ```bash
 docker compose down
+rm -rf .openclaw-files/.openclaw/*
 ./scripts/setup.sh
-rm -rf .openclaw-data/*
-docker compose build && docker compose up -d
 ```
 
 ## Web UI Not Accessible
@@ -114,7 +113,7 @@ If `http://127.0.0.1:18789` returns an empty reply or won't load:
 ```bash
 # Full rebuild (after .env or config changes)
 docker compose down
-rm -rf .openclaw-data/*
+rm -rf .openclaw-files/.openclaw/*
 ./scripts/setup.sh
 
 # Rebuild image only (after Dockerfile changes)

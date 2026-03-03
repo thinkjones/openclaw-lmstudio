@@ -15,6 +15,12 @@ Inspired by [Run OpenClaw Securely in Docker Sandboxes](https://www.docker.com/b
 
 ## Quick Start
 
+There are two ways to get started — choose the one that fits your situation:
+
+### Path A: Fresh Install (no existing OpenClaw)
+
+Use this if you've never installed OpenClaw before, or want to start from a clean config.
+
 ```bash
 # 1. Clone the repo
 git clone https://github.com/thinkjones/openclaw-lmstudio.git
@@ -29,7 +35,87 @@ chmod +x scripts/setup.sh scripts/start.sh
 ./scripts/setup.sh
 ```
 
-OpenClaw is now running at `http://127.0.0.1:18789`.
+`setup.sh` generates a fresh `openclaw.json` from your `.env`, creates the `.openclaw-files/` directory structure, builds the Docker image, and starts the container.
+
+### Path B: Migrate Existing Config (recommended if you have `~/.openclaw`)
+
+Use this if you already have OpenClaw installed at `~/.openclaw` with auth profiles, API keys, and settings configured.
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/thinkjones/openclaw-lmstudio.git
+cd openclaw-lmstudio
+
+# 2. Copy your existing config
+chmod +x scripts/copy-config.sh scripts/start.sh
+./scripts/copy-config.sh
+
+# 3. Build and run
+docker compose build
+docker compose up -d
+```
+
+`copy-config.sh` copies your auth profiles, credentials, agent configs, and settings into `.openclaw-files/.openclaw/`. It patches `gateway.bind` to `"lan"` for Docker networking and removes host-specific paths. The script only runs once — run with `--force` to overwrite.
+
+---
+
+## Using OpenClaw
+
+### Opening the UI
+
+Go to **http://127.0.0.1:18789** in your browser. This is the main way to interact with OpenClaw — it provides a chat interface where you can give the agent tasks, review its work, and manage sessions.
+
+### Authenticating with Claude (device auth)
+
+When using `PROVIDER=claude`, OpenClaw may prompt you to authenticate via Anthropic's device auth flow. You'll see a URL in the logs — open it in your browser, sign in to your Anthropic account, and authorize the connection. Your auth token is stored in `.openclaw-files/.openclaw/` and persists across container restarts.
+
+**API key types:**
+
+- `sk-ant-api03-*` — Direct API key. Billed per token, no device auth needed. Set this in `.env` as `ANTHROPIC_API_KEY`.
+- `sk-ant-oat01-*` — OAuth/setup token. Used with the device auth flow described above. You don't set this manually — it's created automatically when you complete device auth.
+
+### CLI Access
+
+You can also interact with OpenClaw from your terminal:
+
+```bash
+# Open a shell inside the container
+docker compose exec -it openclaw bash
+
+# Open the OpenClaw TUI (terminal interface)
+docker compose exec -it openclaw node /app/dist/index.js tui
+
+# Send a one-off message
+docker compose exec openclaw node /app/dist/index.js agent --message "Hello"
+
+# Check gateway status
+docker compose exec openclaw node /app/dist/index.js status
+```
+
+### Checking Logs
+
+```bash
+# Follow logs in real time
+docker compose logs -f
+```
+
+### Tools Installed at Runtime
+
+OpenClaw may install tools like `gh` (GitHub CLI) and `mise` inside the container as needed. These persist in `.openclaw-files/.local/` across restarts — no need to reinstall after stopping and starting the container.
+
+### Common Operations
+
+```bash
+# Stop the container
+docker compose down
+
+# Restart
+docker compose restart
+
+# Rebuild after Dockerfile changes
+docker compose build --no-cache
+docker compose up -d
+```
 
 ## Provider Setup
 
@@ -102,34 +188,8 @@ After changing `.env`, regenerate config and restart:
 
 ```bash
 docker compose down
-rm -rf .openclaw-data/*
+rm -rf .openclaw-files/.openclaw/*
 ./scripts/setup.sh
-```
-
-## Commands
-
-```bash
-# View logs
-docker compose logs -f
-
-# Stop
-docker compose down
-
-# Restart
-docker compose restart
-
-# Open the OpenClaw TUI (terminal UI)
-docker compose exec -it openclaw node /app/dist/index.js tui
-
-# Send a message via CLI
-docker compose exec openclaw node /app/dist/index.js agent --message "Hello"
-
-# Check gateway status
-docker compose exec openclaw node /app/dist/index.js status
-
-# Rebuild after Dockerfile changes
-docker compose build --no-cache
-docker compose up -d
 ```
 
 ## Mounting Your Existing Workspace
@@ -142,6 +202,23 @@ WORKSPACE_PATH=/Users/you/projects/my-app
 
 Then re-run `./scripts/setup.sh`. OpenClaw will see your project files at `/workspace` inside the container.
 
+## Volume Structure
+
+All persistent data lives under a single `.openclaw-files/` directory, which is gitignored. Both `setup.sh` and `copy-config.sh` create this structure:
+
+```
+.openclaw-files/
+  .openclaw/    → /home/node/.openclaw   (config, auth, agents, settings)
+  .local/       → /home/node/.local      (runtime binaries: gh, gog, mise, etc.)
+  .config/      → /home/node/.config     (runtime config: gh, git, mise, etc.)
+```
+
+| Subdirectory | Populated by | Contents |
+|---|---|---|
+| `.openclaw/` | `setup.sh` (generated) or `copy-config.sh` (copied from `~/.openclaw`) | `openclaw.json`, auth profiles, agent configs, credentials |
+| `.local/` | OpenClaw at runtime (e.g. `gh auth login`, tool installs) | Binaries in `.local/bin/` — persists across container restarts |
+| `.config/` | OpenClaw at runtime | App config dirs (gh, git, mise) — persists across container restarts |
+
 ## Switching Providers
 
 To switch between LM Studio and Claude:
@@ -150,7 +227,7 @@ To switch between LM Studio and Claude:
 2. Clear config and rebuild:
    ```bash
    docker compose down
-   rm -rf .openclaw-data/*
+   rm -rf .openclaw-files/.openclaw/*
    ./scripts/setup.sh
    ```
 
@@ -180,7 +257,7 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common issues.
 - **"Invalid API key"** — Verify your key starts with `sk-ant-api03-` and hasn't expired
 - **Linux users** — Set `LMSTUDIO_HOST` to your LAN IP if `host.docker.internal` doesn't resolve
 - **Permission errors** — Ensure your workspace directory is owned by your user (uid 1000)
-- **Config changes not taking effect** — Run `rm -rf .openclaw-data/*` then rebuild
+- **Config changes not taking effect** — Run `rm -rf .openclaw-files/.openclaw/*` then rebuild
 
 ## Recommended Models
 

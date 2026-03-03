@@ -64,13 +64,13 @@ openclaw.json (LM Studio provider + gateway config)
   ↓
 Dockerfile (bakes openclaw.json into image at /opt/openclaw-seed/)
   ↓
-scripts/start.sh (seeds config into .openclaw-data/ on first run,
+scripts/start.sh (seeds config into .openclaw-files/.openclaw/ on first run,
                    validates LM Studio, launches OpenClaw gateway)
 ```
 
-Config is seeded from the image into `.openclaw-data/` on first run. The gateway then
+Config is seeded from the image into `.openclaw-files/.openclaw/` on first run. The gateway then
 manages its own runtime config (auth tokens, etc.) in that directory. To apply config
-changes, clear `.openclaw-data/` and rebuild the image.
+changes, clear `.openclaw-files/.openclaw/` and rebuild the image.
 
 ## File Descriptions
 
