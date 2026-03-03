@@ -23,6 +23,9 @@ services:
     # --- Environment ---
     environment:
       - NODE_ENV=production
+      # Startup optimization: cache compiled JS, skip self-respawn
+      - NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache
+      - OPENCLAW_NO_RESPAWN=1
       - LANG=C.UTF-8
       - PROVIDER=${PROVIDER:-lmstudio}
       # LM Studio provider
