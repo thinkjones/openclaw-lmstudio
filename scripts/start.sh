@@ -20,10 +20,92 @@ if [ ! -f "${OPENCLAW_DIR}/openclaw.json" ]; then
   cp "${SEED_DIR}/openclaw.json" "${OPENCLAW_DIR}/openclaw.json"
 fi
 
+# --- Clean up legacy auth-profiles.json (written by older start.sh) ---
+# OpenClaw now reads ANTHROPIC_API_KEY from the environment directly.
+# The old hand-written auth-profiles.json causes "ignored invalid auth profile" warnings.
+LEGACY_AUTH="${OPENCLAW_DIR}/agents/main/agent/auth-profiles.json"
+if [ -f "${LEGACY_AUTH}" ]; then
+  echo "Removing legacy auth-profiles.json (no longer needed)..."
+  rm -f "${LEGACY_AUTH}"
+fi
+
+# --- Ensure Node compile cache directory exists ---
+if [ -n "${NODE_COMPILE_CACHE:-}" ]; then
+  mkdir -p "${NODE_COMPILE_CACHE}"
+fi
+
 # --- Ensure user-local bin directory exists and is on PATH ---
 LOCAL_BIN="/home/node/.local/bin"
 mkdir -p "${LOCAL_BIN}"
 export PATH="${LOCAL_BIN}:${PATH}"
+
+# --- Optional runtime dependencies ---
+# Installed once, persisted on the .local volume. Each check is idempotent.
+# Failures are non-fatal (warn and continue).
+
+install_go() {
+  if [ "${INSTALL_GO:-false}" != "true" ]; then return; fi
+  local GO_DIR="/home/node/.local/go"
+  if [ -x "${GO_DIR}/bin/go" ]; then
+    echo "[deps] Go already installed — skipping"
+  else
+    echo "[deps] Installing Go runtime..."
+    local GO_VERSION="1.22.5"
+    local ARCH
+    ARCH="$(uname -m)"
+    case "${ARCH}" in
+      x86_64)  ARCH="amd64" ;;
+      aarch64) ARCH="arm64" ;;
+    esac
+    local TARBALL="go${GO_VERSION}.linux-${ARCH}.tar.gz"
+    if curl -fsSL "https://go.dev/dl/${TARBALL}" -o "/tmp/${TARBALL}"; then
+      mkdir -p "${GO_DIR}"
+      tar -C "/home/node/.local" -xzf "/tmp/${TARBALL}"
+      rm -f "/tmp/${TARBALL}"
+      echo "[deps] Go ${GO_VERSION} installed to ${GO_DIR}"
+    else
+      echo "[deps] WARNING: Failed to download Go — skill 'blogwatcher' may not work"
+    fi
+  fi
+  export PATH="${GO_DIR}/bin:${PATH}"
+  export GOPATH="/home/node/.local/gopath"
+  mkdir -p "${GOPATH}"
+}
+
+install_uv() {
+  if [ "${INSTALL_UV:-false}" != "true" ]; then return; fi
+  if command -v uv &> /dev/null; then
+    echo "[deps] uv already installed — skipping"
+  else
+    echo "[deps] Installing uv..."
+    if curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR="/home/node/.local/bin" sh; then
+      echo "[deps] uv installed"
+    else
+      echo "[deps] WARNING: Failed to install uv — skill 'mcporter' may not work"
+    fi
+  fi
+}
+
+install_npm_globals() {
+  if [ "${INSTALL_NPM_GLOBALS:-false}" != "true" ]; then return; fi
+  local NPM_PREFIX="/home/node/.local"
+  for pkg in clawhub gifgrep; do
+    if [ -x "${NPM_PREFIX}/bin/${pkg}" ]; then
+      echo "[deps] ${pkg} already installed — skipping"
+    else
+      echo "[deps] Installing ${pkg}..."
+      if npm install -g --prefix "${NPM_PREFIX}" "${pkg}" 2>/dev/null; then
+        echo "[deps] ${pkg} installed"
+      else
+        echo "[deps] WARNING: Failed to install ${pkg}"
+      fi
+    fi
+  done
+}
+
+install_go
+install_uv
+install_npm_globals
 
 # --- Persist .bashrc customizations ---
 # OpenClaw may modify .bashrc (e.g. adding PATH entries for installed tools).
@@ -133,39 +215,8 @@ case "${PROVIDER}" in
     echo "API Key:   ${ANTHROPIC_API_KEY:0:12}..."
     echo ""
 
-    # --- Seed auth-profiles.json for the main agent ---
-    # OpenClaw stores provider credentials in auth-profiles.json per agent.
-    # We create this file so the gateway can authenticate with Anthropic.
-    AGENT_DIR="${OPENCLAW_DIR}/agents/main/agent"
-    AUTH_FILE="${AGENT_DIR}/auth-profiles.json"
-    mkdir -p "${AGENT_DIR}"
-
-    # Detect key type: sk-ant-oat01- is a setup token, sk-ant-api03- is an API key
-    if [[ "${ANTHROPIC_API_KEY}" == sk-ant-oat01-* ]]; then
-      echo "Configuring Anthropic auth (setup token)..."
-      cat > "${AUTH_FILE}" << AUTHEOF
-{
-  "profiles": {
-    "anthropic:default": {
-      "type": "token",
-      "token": "${ANTHROPIC_API_KEY}"
-    }
-  }
-}
-AUTHEOF
-    else
-      echo "Configuring Anthropic auth (API key)..."
-      cat > "${AUTH_FILE}" << AUTHEOF
-{
-  "profiles": {
-    "anthropic:default": {
-      "type": "api_key",
-      "key": "${ANTHROPIC_API_KEY}"
-    }
-  }
-}
-AUTHEOF
-    fi
+    # OpenClaw picks up ANTHROPIC_API_KEY from the environment natively.
+    # No manual auth-profiles.json seeding needed.
 
     # --- Quick connectivity check to Anthropic API ---
     echo "Checking Anthropic API connectivity..."
