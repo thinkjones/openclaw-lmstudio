@@ -3,6 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - INSTALL_CHROMIUM=${INSTALL_CHROMIUM:-false}
+        - INSTALL_FFMPEG=${INSTALL_FFMPEG:-false}
+        - INSTALL_HOMEBREW=${INSTALL_HOMEBREW:-false}
     container_name: openclaw-lmstudio
     restart: unless-stopped
 
@@ -19,6 +23,9 @@ services:
     # --- Environment ---
     environment:
       - NODE_ENV=production
+      # Startup optimization: cache compiled JS, skip self-respawn
+      - NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache
+      - OPENCLAW_NO_RESPAWN=1
       - LANG=C.UTF-8
       - PROVIDER=${PROVIDER:-lmstudio}
       # LM Studio provider
@@ -26,6 +33,10 @@ services:
       - LMSTUDIO_PORT=${LMSTUDIO_PORT:-1234}
       # Claude provider
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Optional runtime dependencies (installed on first start, persist on .local volume)
+      - INSTALL_GO=${INSTALL_GO:-false}
+      - INSTALL_UV=${INSTALL_UV:-false}
+      - INSTALL_NPM_GLOBALS=${INSTALL_NPM_GLOBALS:-false}
 
     # Run as node user (uid 1000)
     user: "1000:1000"

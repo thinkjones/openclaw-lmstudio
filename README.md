@@ -103,6 +103,8 @@ docker compose logs -f
 
 OpenClaw may install tools like `gh` (GitHub CLI) and `mise` inside the container as needed. These persist in `.openclaw-files/.local/` across restarts — no need to reinstall after stopping and starting the container.
 
+For skill-specific tools (Go, uv, Chromium, ffmpeg, etc.), enable the corresponding `INSTALL_*` flags in `.env`. See [Optional Dependencies](#optional-dependencies).
+
 ### Common Operations
 
 ```bash
@@ -184,12 +186,36 @@ CLAUDE_MODEL=anthropic/claude-sonnet-4-5    # or anthropic/claude-opus-4-5
 | `CLAUDE_MODEL` | `anthropic/claude-sonnet-4-5` | Claude | Claude model to use |
 | `WORKSPACE_PATH` | `./workspace` | Both | Host directory to mount |
 
+### Optional Dependencies
+
+These flags install tools needed by specific OpenClaw skills. All default to `false`.
+
+| Variable | Default | Rebuild? | Description |
+|----------|---------|----------|-------------|
+| `INSTALL_CHROMIUM` | `false` | Yes | Chromium + X11/font libs (~400 MB) for web browsing skills |
+| `INSTALL_FFMPEG` | `false` | Yes | ffmpeg (~80 MB) for summarize, video-frames skills |
+| `INSTALL_HOMEBREW` | `false` | Yes | Homebrew + OpenClaw tap (~500 MB) — installs gogcli, gh |
+| `INSTALL_GO` | `false` | No | Go runtime (~150 MB) for blogwatcher skill |
+| `INSTALL_UV` | `false` | No | uv Python package manager (~30 MB) for mcporter skill |
+| `INSTALL_NPM_GLOBALS` | `false` | No | npm globals: clawhub, gifgrep |
+
+**Build-time deps** (Chromium, ffmpeg, Homebrew) are baked into the Docker image — changing them requires `docker compose build --no-cache`.
+
+**Runtime deps** (Go, uv, npm globals) are installed on container start and persist on the `.local` volume.
+
 After changing `.env`, regenerate config and restart:
 
 ```bash
 docker compose down
 rm -rf .openclaw-files/.openclaw/*
 ./scripts/setup.sh
+```
+
+### Support OPEN ROUTER
+```
+openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
+
+docker compose exec openclaw openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
 ```
 
 ## Mounting Your Existing Workspace
