@@ -176,7 +176,9 @@ esac
 
 echo ""
 
-# --- Report optional dependencies ---
+# --- Report dependencies ---
+echo "Included in image: jq, Homebrew, gogcli, gh"
+echo ""
 echo "Optional dependencies:"
 BUILD_DEPS=""
 RUNTIME_DEPS=""
@@ -187,8 +189,8 @@ fi
 if [ "${INSTALL_FFMPEG:-false}" = "true" ]; then
   BUILD_DEPS="${BUILD_DEPS} ffmpeg"
 fi
-if [ "${INSTALL_HOMEBREW:-false}" = "true" ]; then
-  BUILD_DEPS="${BUILD_DEPS} homebrew(gogcli,gh)"
+if [ "${INSTALL_QMD:-false}" = "true" ]; then
+  BUILD_DEPS="${BUILD_DEPS} qmd(bun,sqlite)"
 fi
 if [ "${INSTALL_GO:-false}" = "true" ]; then
   RUNTIME_DEPS="${RUNTIME_DEPS} go"

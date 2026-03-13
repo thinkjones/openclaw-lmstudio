@@ -111,15 +111,17 @@ If `http://127.0.0.1:18789` returns an empty reply or won't load:
 ## Rebuilding After Changes
 
 ```bash
-# Full rebuild (after .env or config changes)
-docker compose down
-rm -rf .openclaw-files/.openclaw/*
-./scripts/setup.sh
-
 # Rebuild image only (after Dockerfile changes)
+# This preserves your skills, auth tokens, and all runtime config.
 docker compose down
 docker compose build --no-cache
 docker compose up -d
+
+# Full rebuild (after .env or provider changes)
+# WARNING: This erases skills, auth tokens, and all runtime config!
+docker compose down
+rm -rf .openclaw-files/.openclaw/*
+./scripts/setup.sh
 ```
 
 ## Claude: "ANTHROPIC_API_KEY is required"
@@ -170,7 +172,7 @@ If a skill fails with "command not found" for tools like `go`, `uv`, `ffmpeg`, o
    grep INSTALL_ .env
    ```
 
-2. **Build-time deps** (`INSTALL_CHROMIUM`, `INSTALL_FFMPEG`, `INSTALL_HOMEBREW`) require a rebuild:
+2. **Build-time deps** (`INSTALL_CHROMIUM`, `INSTALL_FFMPEG`, `INSTALL_QMD`) require a rebuild:
    ```bash
    docker compose down
    docker compose build --no-cache

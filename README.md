@@ -114,9 +114,15 @@ docker compose down
 # Restart
 docker compose restart
 
-# Rebuild after Dockerfile changes
+# Rebuild after Dockerfile changes (preserves skills, auth, config)
+docker compose down
 docker compose build --no-cache
 docker compose up -d
+
+# Verify included tools are working
+docker compose exec openclaw jq --version
+docker compose exec openclaw brew --version
+docker compose exec openclaw gh --version
 ```
 
 ## Provider Setup
@@ -186,30 +192,36 @@ CLAUDE_MODEL=anthropic/claude-sonnet-4-5    # or anthropic/claude-opus-4-5
 | `CLAUDE_MODEL` | `anthropic/claude-sonnet-4-5` | Claude | Claude model to use |
 | `WORKSPACE_PATH` | `./workspace` | Both | Host directory to mount |
 
+### Included Tools
+
+The image always includes: `jq`, Homebrew, `gogcli`, and `gh`. These are available without any flags.
+
 ### Optional Dependencies
 
-These flags install tools needed by specific OpenClaw skills. All default to `false`.
+These flags install additional tools needed by specific OpenClaw skills. All default to `false`.
 
 | Variable | Default | Rebuild? | Description |
 |----------|---------|----------|-------------|
 | `INSTALL_CHROMIUM` | `false` | Yes | Chromium + X11/font libs (~400 MB) for web browsing skills |
 | `INSTALL_FFMPEG` | `false` | Yes | ffmpeg (~80 MB) for summarize, video-frames skills |
-| `INSTALL_HOMEBREW` | `false` | Yes | Homebrew + OpenClaw tap (~500 MB) — installs gogcli, gh |
+| `INSTALL_QMD` | `false` | Yes | QMD CLI + Bun + SQLite (~200 MB) — local doc processing with LLMs; auto-downloads GGUF models on first use |
 | `INSTALL_GO` | `false` | No | Go runtime (~150 MB) for blogwatcher skill |
 | `INSTALL_UV` | `false` | No | uv Python package manager (~30 MB) for mcporter skill |
 | `INSTALL_NPM_GLOBALS` | `false` | No | npm globals: clawhub, gifgrep |
 
-**Build-time deps** (Chromium, ffmpeg, Homebrew) are baked into the Docker image — changing them requires `docker compose build --no-cache`.
+**Build-time deps** (Chromium, ffmpeg, QMD) are baked into the Docker image — changing them requires `docker compose build --no-cache`.
 
 **Runtime deps** (Go, uv, npm globals) are installed on container start and persist on the `.local` volume.
 
-After changing `.env`, regenerate config and restart:
+After changing optional dependency flags in `.env`, rebuild the image:
 
 ```bash
 docker compose down
-rm -rf .openclaw-files/.openclaw/*
-./scripts/setup.sh
+docker compose build --no-cache
+docker compose up -d
 ```
+
+> **Note:** Only run `rm -rf .openclaw-files/.openclaw/*` when switching providers or resetting config. This erases skills, auth tokens, and all runtime config.
 
 ### Support OPEN ROUTER
 ```
@@ -257,6 +269,8 @@ To switch between LM Studio and Claude:
    ./scripts/setup.sh
    ```
 
+> **Warning:** Clearing `.openclaw-files/.openclaw/*` removes all skills, auth tokens, and runtime config. This is necessary when switching providers because the config structure differs.
+
 ## Security
 
 The container runs with:
@@ -283,7 +297,7 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common issues.
 - **"Invalid API key"** — Verify your key starts with `sk-ant-api03-` and hasn't expired
 - **Linux users** — Set `LMSTUDIO_HOST` to your LAN IP if `host.docker.internal` doesn't resolve
 - **Permission errors** — Ensure your workspace directory is owned by your user (uid 1000)
-- **Config changes not taking effect** — Run `rm -rf .openclaw-files/.openclaw/*` then rebuild
+- **Config changes not taking effect** — For Dockerfile changes, run `docker compose build --no-cache && docker compose up -d`. Only run `rm -rf .openclaw-files/.openclaw/*` when switching providers (this erases skills and auth)
 
 ## Recommended Models
 
