@@ -1,5 +1,7 @@
 # Environment
 .env
+.env.*
+*.code-workspace
 
 # Workspace data
 workspace/

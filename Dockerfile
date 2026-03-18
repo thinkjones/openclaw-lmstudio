@@ -7,7 +7,22 @@ ARG INSTALL_CHROMIUM=false
 ARG INSTALL_FFMPEG=false
 ARG INSTALL_QMD=false
 
+# --- Upgrade Node.js to v24 ---
+# The base image ships Node 22; overlay Node 24 for latest features/performance.
 USER root
+ARG NODE_VERSION=24.14.0
+RUN set -eux; \
+    ARCH="$(dpkg --print-architecture)"; \
+    case "${ARCH}" in \
+      amd64) NODE_ARCH="x64" ;; \
+      arm64) NODE_ARCH="arm64" ;; \
+      *) echo "Unsupported arch: ${ARCH}" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
+      | tar -xJ --strip-components=1 -C /usr/local/; \
+    node --version
+
+# --- System packages ---
 RUN set -eux; \
     PACKAGES="jq build-essential procps curl file git python3-pip python3-venv"; \
     if [ "${INSTALL_CHROMIUM}" = "true" ]; then \
