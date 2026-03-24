@@ -1,0 +1,6 @@
+# Exclude everything
+*
+
+# Include only what the Dockerfile needs
+!.openclaw-files/.openclaw/openclaw.json
+!scripts/**/*

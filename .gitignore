@@ -1,10 +1,10 @@
 # Environment
 .env
 .env.*
-*.code-workspace
+*.workspace
 
 # Workspace data
-workspace/
+workspace*/
 archive/
 
 # OS files
@@ -12,8 +12,12 @@ archive/
 Thumbs.db
 
 # IDE
+.claude/
 .vscode/
 .idea/
+
+# Documentation
+docs/
 
 # Docker
 *.log
