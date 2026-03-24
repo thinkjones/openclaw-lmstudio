@@ -172,7 +172,7 @@ If a skill fails with "command not found" for tools like `go`, `uv`, `ffmpeg`, o
    grep INSTALL_ .env
    ```
 
-2. **Build-time deps** (`INSTALL_CHROMIUM`, `INSTALL_FFMPEG`, `INSTALL_QMD`) require a rebuild:
+2. **Build-time deps** (`INSTALL_CHROMIUM`, `INSTALL_FFMPEG`) require a rebuild:
    ```bash
    docker compose down
    docker compose build --no-cache

@@ -204,12 +204,11 @@ These flags install additional tools needed by specific OpenClaw skills. All def
 |----------|---------|----------|-------------|
 | `INSTALL_CHROMIUM` | `false` | Yes | Chromium + X11/font libs (~400 MB) for web browsing skills |
 | `INSTALL_FFMPEG` | `false` | Yes | ffmpeg (~80 MB) for summarize, video-frames skills |
-| `INSTALL_QMD` | `false` | Yes | QMD CLI + Bun + SQLite (~200 MB) — local doc processing with LLMs; auto-downloads GGUF models on first use |
 | `INSTALL_GO` | `false` | No | Go runtime (~150 MB) for blogwatcher skill |
 | `INSTALL_UV` | `false` | No | uv Python package manager (~30 MB) for mcporter skill |
 | `INSTALL_NPM_GLOBALS` | `false` | No | npm globals: clawhub, gifgrep |
 
-**Build-time deps** (Chromium, ffmpeg, QMD) are baked into the Docker image — changing them requires `docker compose build --no-cache`.
+**Build-time deps** (Chromium, ffmpeg) are baked into the Docker image — changing them requires `docker compose build --no-cache`.
 
 **Runtime deps** (Go, uv, npm globals) are installed on container start and persist on the `.local` volume.
 

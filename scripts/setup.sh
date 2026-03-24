@@ -189,9 +189,6 @@ fi
 if [ "${INSTALL_FFMPEG:-false}" = "true" ]; then
   BUILD_DEPS="${BUILD_DEPS} ffmpeg"
 fi
-if [ "${INSTALL_QMD:-false}" = "true" ]; then
-  BUILD_DEPS="${BUILD_DEPS} qmd(bun,sqlite)"
-fi
 if [ "${INSTALL_GO:-false}" = "true" ]; then
   RUNTIME_DEPS="${RUNTIME_DEPS} go"
 fi

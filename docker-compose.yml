@@ -6,7 +6,6 @@ services:
       args:
         - INSTALL_CHROMIUM=${INSTALL_CHROMIUM:-false}
         - INSTALL_FFMPEG=${INSTALL_FFMPEG:-false}
-        - INSTALL_QMD=${INSTALL_QMD:-false}
     container_name: openclaw-lmstudio
     restart: unless-stopped
 

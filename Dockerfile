@@ -5,7 +5,6 @@ FROM ghcr.io/openclaw/openclaw:latest
 # Optionally install: Chromium, ffmpeg (large packages, opt-in via build args)
 ARG INSTALL_CHROMIUM=false
 ARG INSTALL_FFMPEG=false
-ARG INSTALL_QMD=false
 
 # --- Upgrade Node.js to v24 ---
 # The base image ships Node 22; overlay Node 24 for latest features/performance.
@@ -64,18 +63,7 @@ USER node
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && \
     brew tap steipete/tap && \
-    brew install steipete/tap/gogcli gh && \
-    if [ "${INSTALL_QMD}" = "true" ]; then \
-      brew install sqlite; \
-    fi
-
-# --- Optional: QMD CLI ---
-RUN if [ "${INSTALL_QMD}" = "true" ]; then \
-      curl -fsSL https://bun.sh/install | bash && \
-      export PATH="/home/node/.bun/bin:${PATH}" && \
-      bun install -g @tobilu/qmd; \
-    fi
-ENV PATH="/home/node/.bun/bin:${PATH}"
+    brew install steipete/tap/gogcli gh
 
 # Store the config as a seed template (not in .openclaw — volume will override it)
 COPY --chown=node:node .openclaw-files/.openclaw/openclaw.json /opt/openclaw-seed/openclaw.json

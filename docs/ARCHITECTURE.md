@@ -82,7 +82,7 @@ the default image lean while allowing opt-in:
 | Tier | Flags | Install Method | Requires Rebuild? |
 |------|-------|---------------|-------------------|
 | Always included | — | `apt-get` + Homebrew in Dockerfile | N/A (always present) |
-| Build-time | `INSTALL_CHROMIUM`, `INSTALL_FFMPEG`, `INSTALL_QMD` | `apt-get` / Bun in Dockerfile | Yes |
+| Build-time | `INSTALL_CHROMIUM`, `INSTALL_FFMPEG` | `apt-get` in Dockerfile | Yes |
 | Runtime | `INSTALL_GO`, `INSTALL_UV`, `INSTALL_NPM_GLOBALS` | Downloaded in `start.sh` on first boot | No |
 
 Runtime deps persist on the `.local` volume. All installers are idempotent and non-fatal.
