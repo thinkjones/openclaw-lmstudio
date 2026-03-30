@@ -6,6 +6,8 @@ services:
       args:
         - INSTALL_CHROMIUM=${INSTALL_CHROMIUM:-false}
         - INSTALL_FFMPEG=${INSTALL_FFMPEG:-false}
+        - BREW_PACKAGES=${BREW_PACKAGES:-}
+        - NPM_PACKAGES=${NPM_PACKAGES:-}
     container_name: openclaw-lmstudio
     restart: unless-stopped
 
@@ -25,6 +27,8 @@ services:
       # Startup optimization: cache compiled JS, skip self-respawn
       - NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache
       - OPENCLAW_NO_RESPAWN=1
+      # Help with container hanging overnight
+      - NODE_OPTIONS=--max-old-space-size=4096
       - LANG=C.UTF-8
       - PROVIDER=${PROVIDER:-lmstudio}
       # LM Studio provider
@@ -36,6 +40,7 @@ services:
       - INSTALL_GO=${INSTALL_GO:-false}
       - INSTALL_UV=${INSTALL_UV:-false}
       - INSTALL_NPM_GLOBALS=${INSTALL_NPM_GLOBALS:-false}
+      
 
     # Run as node user (uid 1000)
     user: "1000:1000"
@@ -45,7 +50,7 @@ services:
       # Workspace: your project directory mounted read-write
       - ${WORKSPACE_PATH:-./workspace}:/workspace:rw
       # OpenClaw config persistence (settings, memory, skills, logs)
-      - ./.openclaw-files/.openclaw:/home/node/.openclaw:rw
+      - ${OPENCLAW_FILES_PATH:?Set OPENCLAW_FILES_PATH in .env}:/home/node/.openclaw:rw
       # User-local persistence (binaries installed by openclaw: gh, gog, etc.)
       - ./.openclaw-files/.local:/home/node/.local:rw
       # Runtime config persistence (gh, git, mise, etc.)

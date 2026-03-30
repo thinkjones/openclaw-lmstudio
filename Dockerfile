@@ -65,8 +65,31 @@ RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.co
     brew tap steipete/tap && \
     brew install steipete/tap/gogcli gh
 
-# Store the config as a seed template (not in .openclaw — volume will override it)
-COPY --chown=node:node .openclaw-files/.openclaw/openclaw.json /opt/openclaw-seed/openclaw.json
+# --- Skill dependencies (brew) ---
+# Space-separated list of brew formulae to install for enabled skills.
+# Override via BREW_PACKAGES build arg or .env to customise.
+ARG BREW_PACKAGES=""
+RUN set -eux; \
+    if [ -n "${BREW_PACKAGES}" ]; then \
+      for pkg in ${BREW_PACKAGES}; do \
+        echo "[skill-deps] brew install ${pkg}"; \
+        brew install "${pkg}" || echo "[skill-deps] WARNING: failed to install ${pkg}"; \
+      done; \
+      brew cleanup --prune=all 2>/dev/null || true; \
+    fi
+
+# --- Skill dependencies (npm) ---
+# Space-separated list of npm packages to install globally for enabled skills.
+ARG NPM_PACKAGES=""
+USER root
+RUN set -eux; \
+    if [ -n "${NPM_PACKAGES}" ]; then \
+      for pkg in ${NPM_PACKAGES}; do \
+        echo "[skill-deps] npm install -g ${pkg}"; \
+        npm install -g "${pkg}" || echo "[skill-deps] WARNING: failed to install ${pkg}"; \
+      done; \
+    fi
+USER node
 
 # Copy entrypoint script
 COPY --chmod=755 scripts/start.sh /usr/local/bin/start.sh
